@@ -1,0 +1,208 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: userId (Firebase Auth UID)
+// Fields:
+//   - email: string (required)
+//   - role: string (required, 'admin' | 'staff')
+//   - name: string (optional)
+//
+// Collection: farmers
+// Document ID: farmerId
+// Fields:
+//   - name: string (required)
+//   - contact: string (required)
+//   - location: map (required) { latitude: number, longitude: number, address: string }
+//   - createdAt: timestamp (required)
+//
+// Collection: batches
+// Document ID: batchId
+// Fields:
+//   - farmerId: string (required)
+//   - weight: number (required)
+//   - quality: string (required, 'Grade A' | 'Grade B' | 'Grade C')
+//   - type: string (required, 'Robusta' | 'Arabica')
+//   - status: string (required, 'Intake' | 'Sorting' | 'Batching' | 'Hulling' | 'Washing' | 'Drying' | 'Ready')
+//   - pricePerKg: number (required)
+//   - totalPrice: number (required)
+//   - createdAt: timestamp (required)
+//   - updatedAt: timestamp (required)
+//
+// Collection: prices
+// Document ID: priceId
+// Fields:
+//   - type: string (required, 'Robusta' | 'Arabica')
+//   - pricePerKg: number (required)
+//   - lastUpdated: timestamp (required)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "ruhundaallan@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['admin', 'staff'];
+    }
+
+    function isValidFarmer(data) {
+      return data.keys().hasAll(['farmerId', 'name', 'gender', 'contact', 'location', 'createdAt']) &&
+             data.farmerId is string && data.farmerId.size() > 0 &&
+             data.name is string && data.name.size() > 0 &&
+             data.gender in ['Male', 'Female', 'Other'] &&
+             data.contact is string && data.contact.size() > 0 &&
+             data.location is map && data.location.keys().hasAll(['latitude', 'longitude']) &&
+             (data.location.latitude is number || data.location.latitude is float) && 
+             (data.location.longitude is number || data.location.longitude is float) &&
+             (!('paymentPreference' in data) || data.paymentPreference in ['MTN Mobile Money', 'Airtel Money', 'Cash', 'Bank Transfer']) &&
+             (!('mobileMoneyNumber' in data) || data.mobileMoneyNumber is string || data.mobileMoneyNumber == null) &&
+             (!('bankDetails' in data) || data.bankDetails == null || (
+               data.bankDetails is map &&
+               data.bankDetails.keys().hasAll(['bankName', 'accountName', 'accountNumber'])
+             ));
+    }
+
+    function isValidBatch(data) {
+      return data.keys().hasAll(['farmerId', 'weight', 'quality', 'type', 'status', 'pricePerKg', 'totalPrice', 'createdAt', 'updatedAt']) &&
+             data.farmerId is string &&
+             data.weight is number && data.weight > 0 &&
+             data.quality in ['Grade A', 'Grade B', 'Grade C'] &&
+             data.type in ['Robusta', 'Arabica'] &&
+             data.status in ['Intake', 'Sorting', 'Batching', 'Hulling', 'Washing', 'Drying', 'Ready'] &&
+             data.pricePerKg is number && data.pricePerKg > 0 &&
+             data.totalPrice is number && data.totalPrice > 0 &&
+             (!('paymentStatus' in data) || data.paymentStatus in ['Pending', 'Paid']) &&
+             (!('paymentMethod' in data) || data.paymentMethod in ['MTN Mobile Money', 'Airtel Money', 'Cash', 'Bank Transfer']) &&
+             (!('paymentReference' in data) || data.paymentReference is string) &&
+             (!('storageTemperature' in data) || data.storageTemperature is number) &&
+             (!('storageLocation' in data) || data.storageLocation is string) &&
+             (!('history' in data) || data.history is list);
+    }
+
+    function isValidPrice(data) {
+      return data.keys().hasAll(['type', 'pricePerKg', 'lastUpdated']) &&
+             data.type in ['Robusta', 'Arabica'] &&
+             data.pricePerKg is number && data.pricePerKg > 0;
+    }
+
+    function isValidBuyer(data) {
+      return data.keys().hasAll(['name', 'type', 'contact']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.type in ['Local', 'Exporter'];
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll(['batchId', 'buyerId', 'saleDate', 'weight', 'pricePerKg', 'totalAmount', 'type', 'status']) &&
+             data.batchId is string &&
+             data.buyerId is string &&
+             data.weight is number && data.weight > 0 &&
+             data.pricePerKg is number && data.pricePerKg > 0 &&
+             data.totalAmount is number &&
+             data.type in ['Local', 'Export'] &&
+             data.status in ['Pending', 'Completed', 'Shipped'] &&
+             (!('exportDetails' in data) || (
+               data.exportDetails is map &&
+               (!('exportStatus' in data.exportDetails) || data.exportDetails.exportStatus in ['Pending Shipment', 'In Transit', 'Delivered'])
+             ));
+    }
+
+    function isValidFeedback(data) {
+      return data.keys().hasAll(['userId', 'userName', 'userEmail', 'subject', 'message', 'createdAt']) &&
+             data.userId is string &&
+             data.userName is string &&
+             data.userEmail is string &&
+             data.subject is string && data.subject.size() > 0 && data.subject.size() < 200 &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 5000;
+    }
+
+    function isValidExpense(data) {
+      return data.keys().hasAll(['category', 'amount', 'date', 'description', 'recordedBy', 'createdAt', 'updatedAt']) &&
+             data.category in ['Water', 'Electricity', 'Salary', 'Maintenance', 'Fuel', 'Packaging', 'Other'] &&
+             data.amount is number && data.amount >= 0 &&
+             data.description is string &&
+             data.recordedBy is string;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (isOwner(userId) || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role));
+      allow delete: if isAdmin();
+    }
+
+    match /farmers/{farmerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidFarmer(request.resource.data);
+      allow update: if isAuthenticated() && isValidFarmer(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /batches/{batchId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidBatch(request.resource.data);
+      allow update: if isAuthenticated() && isValidBatch(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /prices/{priceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && isValidPrice(request.resource.data);
+    }
+
+    match /buyers/{buyerId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidBuyer(request.resource.data);
+    }
+
+    match /sales/{saleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidSale(request.resource.data);
+    }
+
+    match /feedback/{feedbackId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && isValidFeedback(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidExpense(request.resource.data);
+      allow update: if (isAdmin() || (isAuthenticated() && resource.data.recordedBy == request.auth.uid)) && isValidExpense(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}

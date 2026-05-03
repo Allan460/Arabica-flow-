@@ -1,0 +1,17 @@
+{
+  "name": "ArabicaFlow Coffee Management",
+  "short_name": "ArabicaFlow",
+  "description": "Premium Arabica Coffee Processing & Export System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3233/3233481.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "name": "ArabicaFlow: Premium Coffee Management",
+  "description": "Professional Arabica coffee processing and export management system for factory admins.",
+  "requestFramePermissions": ["geolocation"]
+}

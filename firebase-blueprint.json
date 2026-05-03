@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "Farmer": {
+      "title": "Farmer",
+      "description": "A coffee farmer providing produce to the system.",
+      "type": "object",
+      "properties": {
+        "farmerId": { "type": "string", "description": "Unique human-readable ID." },
+        "name": { "type": "string", "description": "Full name of the farmer." },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "contact": { "type": "string", "description": "Phone number or contact info." },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" },
+            "address": { "type": "string" }
+          },
+          "required": ["latitude", "longitude"]
+        },
+        "paymentPreference": { "type": "string", "enum": ["MTN Mobile Money", "Airtel Money", "Cash", "Bank Transfer"] },
+        "mobileMoneyNumber": { "type": "string" },
+        "bankDetails": {
+          "type": "object",
+          "properties": {
+            "bankName": { "type": "string" },
+            "accountName": { "type": "string" },
+            "accountNumber": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["farmerId", "name", "gender", "contact", "location"]
+    },
+    "Batch": {
+      "title": "Coffee Batch",
+      "description": "A specific batch of coffee brought by a farmer.",
+      "type": "object",
+      "properties": {
+        "farmerId": { "type": "string", "description": "Reference to the farmer." },
+        "weight": { "type": "number", "description": "Weight in kilograms." },
+        "quality": { "type": "string", "enum": ["Grade A", "Grade B", "Grade C"], "description": "Quality grade of the coffee." },
+        "type": { "type": "string", "enum": ["Robusta", "Arabica"], "description": "Type of coffee." },
+        "status": { 
+          "type": "string", 
+          "enum": ["Intake", "Sorting", "Batching", "Hulling", "Washing", "Drying", "Ready"],
+          "description": "Current processing stage."
+        },
+        "pricePerKg": { "type": "number", "description": "Price per kg at time of intake." },
+        "totalPrice": { "type": "number", "description": "Calculated total price." },
+        "paymentStatus": { "type": "string", "enum": ["Pending", "Paid"] },
+        "paymentMethod": { "type": "string", "enum": ["MTN Mobile Money", "Airtel Money", "Cash", "Bank Transfer"] },
+        "paymentReference": { "type": "string" },
+        "storageTemperature": { "type": "number", "description": "Current storage temperature in Celsius." },
+        "storageLocation": { "type": "string", "description": "Rack or bin location." },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" },
+              "updatedBy": { "type": "string" },
+              "notes": { "type": "string" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["farmerId", "weight", "quality", "type", "status", "pricePerKg", "totalPrice"]
+    },
+    "PriceConfig": {
+      "title": "Price Configuration",
+      "description": "Standard coffee pricing in Uganda.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["Robusta", "Arabica"] },
+        "pricePerKg": { "type": "number" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["type", "pricePerKg"]
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "System user with roles.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "staff"] },
+        "name": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "Buyer": {
+      "title": "Buyer",
+      "description": "A local or international buyer of coffee.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Local", "Exporter"] },
+        "contact": { "type": "string" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "type", "contact"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "A record of a coffee sale, local or export.",
+      "type": "object",
+      "properties": {
+        "batchId": { "type": "string" },
+        "buyerId": { "type": "string" },
+        "saleDate": { "type": "string", "format": "date-time" },
+        "weight": { "type": "number" },
+        "pricePerKg": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "type": { "type": "string", "enum": ["Local", "Export"] },
+        "status": { "type": "string", "enum": ["Pending", "Completed", "Shipped"] },
+        "exportDetails": {
+          "type": "object",
+          "properties": {
+            "destinationCountry": { "type": "string" },
+            "portOfOrigin": { "type": "string" },
+            "shippingLine": { "type": "string" },
+            "containerNumber": { "type": "string" },
+            "phytosanitaryCert": { "type": "boolean" },
+            "certificateOfOrigin": { "type": "boolean" },
+            "billOfLadingRef": { "type": "string" },
+            "exportStatus": { "type": "string", "enum": ["Pending Shipment", "In Transit", "Delivered"] }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["batchId", "buyerId", "saleDate", "weight", "pricePerKg", "totalAmount", "type", "status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User feedback and comments about the system.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "userEmail", "subject", "message", "createdAt"]
+    },
+    "Expense": {
+      "title": "Factory Expense",
+      "description": "Operational costs for the factory (water, electricity, salary, etc.).",
+      "type": "object",
+      "properties": {
+        "category": { "type": "string", "enum": ["Water", "Electricity", "Salary", "Maintenance", "Fuel", "Packaging", "Other"] },
+        "amount": { "type": "number", "description": "Amount in UGX." },
+        "date": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "recordedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["category", "amount", "date", "description", "recordedBy"]
+    }
+  },
+  "firestore": {
+    "/farmers/{farmerId}": { "schema": "Farmer", "description": "Collection of farmers." },
+    "/batches/{batchId}": { "schema": "Batch", "description": "Collection of coffee batches." },
+    "/prices/{priceId}": { "schema": "PriceConfig", "description": "Current market prices." },
+    "/users/{userId}": { "schema": "User", "description": "User profiles and roles." },
+    "/buyers/{buyerId}": { "schema": "Buyer", "description": "Collection of buyers." },
+    "/sales/{saleId}": { "schema": "Sale", "description": "Collection of sales." },
+    "/feedback/{feedbackId}": { "schema": "Feedback", "description": "User feedback and comments." },
+    "/expenses/{expenseId}": { "schema": "Expense", "description": "Collection of factory expenses." }
+  }
+}
